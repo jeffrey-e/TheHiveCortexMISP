@@ -1,0 +1,24 @@
+## <summary>policy for thehive</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run thehive.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`thehive_domtrans',`
+	gen_require(`
+		type thehive_t, thehive_exec_t;
+	')
+
+	domain_auto_transition_pattern($1,thehive_exec_t,thehive_t)
+
+	allow $1 thehive_t:fd use;
+	allow thehive_t $1:fd use;
+	allow thehive_t $1:fifo_file rw_file_perms;
+	allow thehive_t $1:process sigchld;
+')

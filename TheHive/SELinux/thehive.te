@@ -1,0 +1,74 @@
+policy_module(thehive,1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type thehive_t;
+type thehive_exec_t;
+domain_type(thehive_t)
+init_daemon_domain(thehive_t, thehive_exec_t)
+
+# pid files
+type thehive_var_run_t;
+files_pid_file(thehive_var_run_t)
+
+# log files
+type thehive_var_log_t;
+logging_log_file(thehive_var_log_t)
+
+# var/lib files
+type thehive_var_lib_t;
+files_type(thehive_var_lib_t)
+
+########################################
+#
+# thehive local policy
+#
+# Check in /etc/selinux/refpolicy/include for macros to use instead of allow rules.
+
+# Some common macros (you might be able to remove some)
+files_read_etc_files(thehive_t)
+libs_use_ld_so(thehive_t)
+libs_use_shared_libs(thehive_t)
+miscfiles_read_localization(thehive_t)
+## internal communication is often done using fifo and unix sockets.
+allow thehive_t self:fifo_file { read write };
+allow thehive_t self:unix_stream_socket create_stream_socket_perms;
+
+# pid file
+allow thehive_t thehive_var_run_t:file manage_file_perms;
+allow thehive_t thehive_var_run_t:sock_file manage_file_perms;
+allow thehive_t thehive_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(thehive_t,thehive_var_run_t, { file sock_file })
+
+# log files
+allow thehive_t thehive_var_log_t:file create_file_perms;
+allow thehive_t thehive_var_log_t:sock_file create_file_perms;
+allow thehive_t thehive_var_log_t:dir { rw_dir_perms setattr };
+logging_log_filetrans(thehive_t,thehive_var_log_t,{ sock_file file dir })
+
+# var/lib files for thehive
+allow thehive_t thehive_var_lib_t:file create_file_perms;
+allow thehive_t thehive_var_lib_t:sock_file create_file_perms;
+allow thehive_t thehive_var_lib_t:dir create_dir_perms;
+files_var_lib_filetrans(thehive_t,thehive_var_lib_t, { file dir sock_file })
+
+## Networking basics (adjust to your needs!)
+sysnet_dns_name_resolve(thehive_t)
+corenet_tcp_sendrecv_all_if(thehive_t)
+corenet_tcp_sendrecv_all_nodes(thehive_t)
+corenet_tcp_sendrecv_all_ports(thehive_t)
+corenet_non_ipsec_sendrecv(thehive_t)
+corenet_tcp_connect_http_port(thehive_t)
+#corenet_tcp_connect_all_ports(thehive_t)
+## if it is a network daemon, consider these:
+#corenet_tcp_bind_all_ports(thehive_t)
+#corenet_tcp_bind_all_nodes(thehive_t)
+allow thehive_t self:tcp_socket { listen accept };
+
+# Init script handling
+init_use_fds(thehive_t)
+init_use_script_ptys(thehive_t)
+domain_use_interactive_fds(thehive_t)
