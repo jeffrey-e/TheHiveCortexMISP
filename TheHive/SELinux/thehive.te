@@ -85,16 +85,6 @@ files_type(thehive_var_lib_t)
 #
 # thehive local policy
 #
-# Check in /etc/selinux/refpolicy/include for macros to use instead of allow rules.
-# The allow directive is the base directive used to authorize an operation. The first 
-# parameter is the process domain which is allowed to execute the operation. The 
-# second one defines the object that a process of the former domain can manipulate. 
-# This parameter is of the form “type:class“ where type is its SELinux type and class 
-# describes the nature of the object (file, directory, socket, fifo, etc.). Finally, 
-# the last parameter describes the permissions (the allowed operations).
-# Used macro's can be found at /usr/share/selinux/devel/include/support/*
-# Source: https://debian-handbook.info/browse/stable/sect.selinux.html
-
 
 ### Some common macros (you might be able to remove some)
 #############Can be made more specific by making the /etc/thehive folder/files of a specific type
