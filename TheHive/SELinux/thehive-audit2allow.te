@@ -1,61 +1,64 @@
-###################################################################################################################################
-### Title: The Hive SELinux policy module                                                                                       ###
-### File Type: Type Enforcement                                                                                                 ###
-### Author: Jeffrey Everling                                                                                                    ###
-### Description: This is a SELinux policy module for The Hive (https://thehive-project.org/). It is still under development and ###
-### there are no guarantees that this is a perfect SELinux policy module. Suggestions are welcome!                              ###
-###################################################################################################################################
-
-### TO DO:
-# - Try to split the executation phase (running the thehive script in bin) with the operational phase (running as a JAVA process)
-#   This should allow the process to run in a much more restricted domain
-# - Investigate and optimize config below as there is room for improvement
-
 policy_module(thehive,1.0.0)
 
-########################################
-#
-# Requirements
-#
+### Import
 require {
-        type bin_t;
-        type locale_t;
-        type cslistener_port_t;
-        type autofs_t;
         type proc_net_t;
+        type cslistener_port_t;
         type net_conf_t;
         type sysctl_vm_t;
         type user_runtime_t;
+        type autofs_t;
         type var_lock_t;
         type sysfs_t;
         type home_root_t;
         type tmp_t;
+        type ntpd_t;
         type urandom_device_t;
         type sysctl_net_t;
+        type system_cronjob_t;
+        type init_t;
         type fixed_disk_device_t;
         type hugetlbfs_t;
+        type ldconfig_exec_t;
+        type local_login_t;
+        type sshd_t;
         type user_home_dir_t;
+        type http_port_t;
         type var_log_t;
         type usr_t;
+        type var_run_t;
         type shell_exec_t;
+        type java_exec_t;
         type sysctl_vm_overcommit_t;
+        type exim_t;
+        type system_mail_t;
+        type semanage_tmp_t;
+        type locale_t;
         type pstore_t;
         type tmpfs_t;
         type sysctl_fs_t;
         type debugfs_t;
-        type sysctl_t;
-        type user_runtime_root_t;
-        type random_device_t;
-        type java_exec_t;
+        type unconfined_t;
         type node_t;
+        type random_device_t;
+        type sysctl_t;
+        type cert_t;
+        type v4l_device_t;
+        type user_runtime_root_t;
+        type systemd_logind_t;
+        type var_lib_t;
+        type thehive_t;
+        type bin_t;
         type unreserved_port_t;
+        type semanage_t;
+        type dpkg_var_lib_t;
         class sock_file unlink;
         class chr_file { getattr open read };
         class lnk_file read;
         class file { create execute execute_no_trans getattr open read rename unlink write };
         class udp_socket { create ioctl };
+        class key { search write };
 }
-
 
 ########################################
 #
@@ -97,17 +100,14 @@ files_type(thehive_var_lib_t)
 
 
 ### Some common macros (you might be able to remove some)
-#############Can be made more specific by making the /etc/thehive folder/files of a specific type
 files_read_etc_files(thehive_t)
 libs_use_ld_so(thehive_t)
 libs_use_shared_libs(thehive_t)
 #miscfiles_read_localization(thehive_t)
 
 ### internal communication is often done using fifo and unix sockets.
-allow thehive_t self:tcp_socket accept;
 allow thehive_t self:fifo_file { read write };
 allow thehive_t self:unix_stream_socket create_stream_socket_perms;
-allow thehive_t self:process execmem;
 
 ### pid file
 allow thehive_t thehive_var_run_t:file manage_file_perms;
@@ -137,45 +137,22 @@ files_var_lib_filetrans(thehive_t,thehive_var_lib_t, { file dir sock_file })
 #corenet_tcp_bind_all_ports(thehive_t)
 #corenet_tcp_bind_all_nodes(thehive_t)
 
-########################################
-#
-# The Hive Additional rules
-#
-
-### Allow The Hive to use JAVA
-allow thehive_t java_exec_t:file { execute execute_no_trans getattr open read };
-
-#Allow The Hive to run basic commands
-allow thehive_t bin_t:file { execute execute_no_trans getattr open read };
-allow thehive_t bin_t:lnk_file read;
-allow thehive_t bin_t:dir search;
-
-#Allow The Hive to access Locale
-allow thehive_t locale_t:file { getattr open read };
-allow thehive_t locale_t:lnk_file read;
-allow thehive_t locale_t:dir search;
-
-#Search paths of this type
-allow thehive_t home_root_t:dir search;
-allow thehive_t sysctl_t:dir search;
-allow thehive_t user_runtime_root_t:dir search;
-
-#Allow The Hive to access resolv.conf (JAVA)
-allow thehive_t net_conf_t:file { getattr open read };
-
 ### Allow TheHive to connect to Cortex
 #corenet_tcp_connect_http_port(thehive_t)
 #corenet_tcp_connect_all_ports(thehive_t)
 
 ### Allow to open port 9000
 #Internet nodejs example
-allow thehive_t cslistener_port_t:tcp_socket { listen accept name_bind };
-allow thehive_t unreserved_port_t:tcp_socket name_connect; # << Can be improved when the SELinux policy is present for elasticsearch
+#allow thehive_t self:tcp_socket { create_stream_socket_perms name_bind };
+#Policygentool
+allow thehive_t self:tcp_socket { listen accept };
 
 # Init script handling
 init_use_fds(thehive_t)
 init_use_script_ptys(thehive_t)
 domain_use_interactive_fds(thehive_t)
+
+#Audit2allow generated rules, need to check
 
 #All required getattr permissions
 allow thehive_t autofs_t:dir getattr;
@@ -189,19 +166,30 @@ allow thehive_t tmpfs_t:dir getattr;
 allow thehive_t var_lock_t:dir getattr;
 allow thehive_t fixed_disk_device_t:blk_file getattr;
 
-#Allow required actions on its own domain (execmem is considered tricky)
-allow thehive_t self:fifo_file { getattr ioctl };
-allow thehive_t self:process { execmem getsched };
-allow thehive_t self:tcp_socket { listen bind connect create getattr getopt read setopt write };
-allow thehive_t self:udp_socket { create ioctl };
 
-########################################
-### Uninvestigated audit2allow rules ###
-########################################
+#Allow The Hive 
+#allow thehive_t bin_t:file { execute execute_no_trans getattr open read };
+#allow thehive_t bin_t:lnk_file read;
+
+#allow thehive_t cslistener_port_t:tcp_socket name_bind;
+
+#allow thehive_t java_exec_t:file { execute execute_no_trans getattr open read };
+
+#allow thehive_t locale_t:file { getattr open read };
+#allow thehive_t locale_t:lnk_file read;
+
+#allow thehive_t net_conf_t:file { getattr open read };
+
+#allow thehive_t node_t:tcp_socket node_bind;
 
 allow thehive_t proc_net_t:file { getattr open read };
 
 allow thehive_t random_device_t:chr_file { getattr open read };
+
+allow thehive_t self:fifo_file { getattr ioctl };
+allow thehive_t self:process { execmem getsched };
+allow thehive_t self:tcp_socket { bind connect create getattr getopt read setopt write };
+allow thehive_t self:udp_socket { create ioctl };
 
 allow thehive_t shell_exec_t:file { execute execute_no_trans getattr open read };
 
@@ -220,7 +208,8 @@ allow thehive_t sysfs_t:lnk_file read;
 
 allow thehive_t tmp_t:dir { add_name create read remove_name write };
 allow thehive_t tmp_t:file { create getattr open read unlink write };
-allow thehive_t tmp_t:dir rmdir;
+
+allow thehive_t unreserved_port_t:tcp_socket name_connect;
 
 #!!!! This avc can be allowed using the boolean 'global_ssp'
 allow thehive_t urandom_device_t:chr_file { getattr open read };
@@ -230,5 +219,3 @@ allow thehive_t user_runtime_t:dir getattr;
 allow thehive_t usr_t:dir read;
 allow thehive_t usr_t:lnk_file read;
 allow thehive_t var_log_t:file open;
-
-allow thehive_t node_t:tcp_socket node_bind;

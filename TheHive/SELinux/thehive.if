@@ -1,3 +1,11 @@
+###################################################################################################################################
+### Title: The Hive SELinux policy module                                                                                       ###
+### File Type: Interfaces                                                                                                       ###
+### Author: Jeffrey Everling                                                                                                    ###
+### Description: This is a SELinux policy module for The Hive (https://thehive-project.org/). It is still under development and ###
+### there are no guarantees that this is a perfect SELinux policy module. Suggestions are welcome!                              ###
+###################################################################################################################################
+
 ## <summary>policy for thehive</summary>
 
 ########################################
