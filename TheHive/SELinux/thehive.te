@@ -48,7 +48,9 @@ require {
         type random_device_t;
         type java_exec_t;
         type node_t;
-        type unreserved_port_t;
+        type elasticsearch_t;
+        type elasticsearch_port_t;
+        #type cortex_port_t;
         class sock_file unlink;
         class chr_file { getattr open read };
         class lnk_file read;
@@ -63,6 +65,11 @@ require {
 #
 
 type thehive_t;
+
+#Define a port type
+type thehive_port_t;
+corenet_port(thehive_port_t);
+
 type thehive_exec_t;
 domain_type(thehive_t)
 init_daemon_domain(thehive_t, thehive_exec_t)
@@ -140,6 +147,9 @@ allow thehive_t bin_t:file { execute execute_no_trans getattr open read };
 allow thehive_t bin_t:lnk_file read;
 allow thehive_t bin_t:dir search;
 
+# Allow The Hive to use bash
+allow thehive_t shell_exec_t:file { execute execute_no_trans getattr open read };
+
 #Allow The Hive to access Locale
 allow thehive_t locale_t:file { getattr open read };
 allow thehive_t locale_t:lnk_file read;
@@ -153,14 +163,19 @@ allow thehive_t user_runtime_root_t:dir search;
 #Allow The Hive to access resolv.conf (JAVA)
 allow thehive_t net_conf_t:file { getattr open read };
 
-### Allow TheHive to connect to Cortex
-#corenet_tcp_connect_http_port(thehive_t)
-#corenet_tcp_connect_all_ports(thehive_t)
-
-### Allow to open port 9000
-#Internet nodejs example
+### Allow to open port 9000 (This is a reserved port in the default SElinux policy, so the port type is not custom to The Hive)
 allow thehive_t cslistener_port_t:tcp_socket { listen accept name_bind };
-allow thehive_t unreserved_port_t:tcp_socket name_connect; # << Can be improved when the SELinux policy is present for elasticsearch
+allow thehive_t node_t:tcp_socket node_bind;
+
+### Allow TheHive to connect to elasticsearch
+allow thehive_t elasticsearch_port_t:tcp_socket name_connect;
+#Need to figure out if I can translate this to ES port types
+
+### Allow TheHive to connect to Cortex
+#allow thehive_t cortex_port_t:tcp_socket name_connect;
+
+### Allow access to the network information within /proc
+allow thehive_t proc_net_t:file { getattr open read };
 
 # Init script handling
 init_use_fds(thehive_t)
@@ -178,6 +193,27 @@ allow thehive_t sysctl_t:dir getattr;
 allow thehive_t tmpfs_t:dir getattr;
 allow thehive_t var_lock_t:dir getattr;
 allow thehive_t fixed_disk_device_t:blk_file getattr;
+allow thehive_t user_runtime_root_t:dir getattr;
+allow thehive_t user_runtime_t:dir getattr;
+
+#Allow thehive to work in /tmp
+allow thehive_t tmp_t:dir { add_name create read remove_name write };
+allow thehive_t tmp_t:file { create getattr open read unlink write };
+allow thehive_t tmp_t:dir rmdir;
+
+### Allow access to the information within /proc and /sys (https://en.wikipedia.org/wiki/Sysfs)
+allow thehive_t sysctl_fs_t:dir { getattr search };
+allow thehive_t sysctl_net_t:dir search;
+allow thehive_t sysctl_net_t:file { getattr open read };
+allow thehive_t sysctl_vm_overcommit_t:file { open read };
+allow thehive_t sysctl_vm_t:dir search;
+allow thehive_t sysfs_t:dir read;
+allow thehive_t sysfs_t:file { open read };
+allow thehive_t sysfs_t:lnk_file read;
+
+# Allow The Hive to use /dev/random and /dev/urandom
+allow thehive_t random_device_t:chr_file { getattr open read };
+allow thehive_t urandom_device_t:chr_file { getattr open read };
 
 #Allow required actions on its own domain (execmem is considered tricky)
 allow thehive_t self:fifo_file { getattr ioctl };
@@ -189,36 +225,6 @@ allow thehive_t self:udp_socket { create ioctl };
 ### Uninvestigated audit2allow rules ###
 ########################################
 
-allow thehive_t proc_net_t:file { getattr open read };
-
-allow thehive_t random_device_t:chr_file { getattr open read };
-
-allow thehive_t shell_exec_t:file { execute execute_no_trans getattr open read };
-
-allow thehive_t sysctl_fs_t:dir { getattr search };
-
-allow thehive_t sysctl_net_t:dir search;
-allow thehive_t sysctl_net_t:file { getattr open read };
-
-allow thehive_t sysctl_vm_overcommit_t:file { open read };
-
-allow thehive_t sysctl_vm_t:dir search;
-
-allow thehive_t sysfs_t:dir read;
-allow thehive_t sysfs_t:file { open read };
-allow thehive_t sysfs_t:lnk_file read;
-
-allow thehive_t tmp_t:dir { add_name create read remove_name write };
-allow thehive_t tmp_t:file { create getattr open read unlink write };
-allow thehive_t tmp_t:dir rmdir;
-
-#!!!! This avc can be allowed using the boolean 'global_ssp'
-allow thehive_t urandom_device_t:chr_file { getattr open read };
-allow thehive_t user_home_dir_t:dir search;
-allow thehive_t user_runtime_root_t:dir getattr;
-allow thehive_t user_runtime_t:dir getattr;
 allow thehive_t usr_t:dir read;
 allow thehive_t usr_t:lnk_file read;
 allow thehive_t var_log_t:file open;
-
-allow thehive_t node_t:tcp_socket node_bind;

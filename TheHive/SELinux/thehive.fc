@@ -11,6 +11,7 @@
 # MLS sensitivity: s0
 # MCS categories: <none>
 
+/opt/thehive(/.*)?	        gen_context(system_u:object_r:thehive_base_t,s0)
 /opt/thehive/bin/thehive	gen_context(system_u:object_r:thehive_exec_t,s0)
 /opt/thehive/RUNNING_PID	gen_context(system_u:object_r:thehive_var_run_t,s0)
 /opt/thehive/logs/			gen_context(system_u:object_r:thehive_var_log_t,s0)

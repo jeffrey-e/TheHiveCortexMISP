@@ -1,0 +1,250 @@
+###################################################################################################################################
+### Title: ElasticSearch SELinux policy module                                                                                  ###
+### File Type: Type Enforcement                                                                                                 ###
+### Author: Jeffrey Everling                                                                                                    ###
+### Description: This is a SELinux policy module for Elasticsearcg (https://elastic.co). It is still under development and      ###
+### there are no guarantees that this is a perfect SELinux policy module. Suggestions are welcome!                              ###
+###################################################################################################################################
+
+policy_module(elasticsearch,1.0.0)
+
+########################################
+#
+# Requirements
+#
+require {
+        type bin_t;
+        type locale_t;
+        type autofs_t;
+        type proc_net_t;
+        type net_conf_t;
+        type sysctl_vm_t;
+        type var_lock_t;
+        type sysfs_t;
+        type home_root_t;
+        type tmp_t;
+        type urandom_device_t;
+        type sysctl_net_t;
+        type hugetlbfs_t;
+        type var_log_t;
+        type shell_exec_t;
+        type sysctl_vm_overcommit_t;
+        type pstore_t;
+        type tmpfs_t;
+        type sysctl_fs_t;
+        type debugfs_t;
+        type sysctl_t;
+        type user_runtime_root_t;
+        type random_device_t;
+        type java_exec_t;
+        type hostname_exec_t;
+        type ldconfig_exec_t;
+        type proc_t;
+        type cgroup_t;
+        type fs_t;
+        type binfmt_misc_fs_t;
+        type fixed_disk_device_t;
+        type user_runtime_t;
+        type setfiles_t;
+        type systemd_logind_t;
+        type node_t;
+        class sock_file unlink;
+        class chr_file { getattr open read };
+        class lnk_file read;
+        class file { create execute execute_no_trans getattr open read rename unlink write };
+        class udp_socket { create ioctl };
+}
+
+
+########################################
+#
+# Declarations
+#
+
+type elasticsearch_t;
+
+type elasticsearch_base_t;
+files_type(elasticsearch_base_t)
+
+type elasticsearch_bin_t;
+files_type(elasticsearch_bin_t)
+
+#Define a port type
+type elasticsearch_port_t;
+corenet_port(elasticsearch_port_t);
+
+type elasticsearch_exec_t;
+domain_type(elasticsearch_t)
+init_daemon_domain(elasticsearch_t, elasticsearch_exec_t)
+
+### pid files
+type elasticsearch_var_run_t;
+files_pid_file(elasticsearch_var_run_t)
+
+### log files
+type elasticsearch_var_log_t;
+# Enable generic log permissions to ElasticSearch logging
+logging_log_file(elasticsearch_var_log_t)
+
+### var/lib files
+type elasticsearch_var_lib_t;
+files_type(elasticsearch_var_lib_t)
+
+### /etc files
+type elasticsearch_etc_t;
+
+########################################
+#
+# ElasticSearch local policy
+#
+
+### Some common macros (you might be able to remove some)
+#############Can be made more specific by making the /etc/thehive folder/files of a specific type
+files_read_etc_files(elasticsearch_t)
+libs_use_ld_so(elasticsearch_t)
+libs_use_shared_libs(elasticsearch_t)
+
+### Internal communication is often done using fifo and unix sockets.
+allow elasticsearch_t self:tcp_socket { accept listen bind connect create getattr getopt read setopt write };
+allow elasticsearch_t self:fifo_file { read write getattr ioctl };
+allow elasticsearch_t self:unix_stream_socket create_stream_socket_perms;
+allow elasticsearch_t self:process { execmem getsched };
+allow elasticsearch_t self:udp_socket { create ioctl };
+
+### Bin files
+allow elasticsearch_t elasticsearch_bin_t:dir { getattr open read search };
+allow elasticsearch_t elasticsearch_bin_t:file { getattr open read };
+
+### Configuration files
+allow elasticsearch_t elasticsearch_etc_t:dir { getattr open read search };
+allow elasticsearch_t elasticsearch_etc_t:file { getattr open read };
+
+### pid file
+allow elasticsearch_t elasticsearch_var_run_t:file manage_file_perms;
+allow elasticsearch_t elasticsearch_var_run_t:sock_file manage_file_perms;
+allow elasticsearch_t elasticsearch_var_run_t:dir rw_dir_perms;
+files_pid_filetrans(elasticsearch_t,elasticsearch_var_run_t, { file sock_file })
+
+### log files
+allow elasticsearch_t elasticsearch_var_log_t:file { create_file_perms open rename };
+allow elasticsearch_t elasticsearch_var_log_t:sock_file create_file_perms;
+allow elasticsearch_t elasticsearch_var_log_t:dir { rw_dir_perms setattr };
+logging_log_filetrans(elasticsearch_t,elasticsearch_var_log_t,{ sock_file file dir })
+
+# var/lib files for elasticsearch
+allow elasticsearch_t elasticsearch_var_lib_t:file { create_file_perms read rename unlink write getattr lock open write };
+allow elasticsearch_t elasticsearch_var_lib_t:sock_file create_file_perms;
+allow elasticsearch_t elasticsearch_var_lib_t:dir { create_dir_perms open read search add_name remove_name write };
+
+files_var_lib_filetrans(elasticsearch_t,elasticsearch_var_lib_t, { file dir sock_file })
+
+### Base files (other than specifically labeled)
+allow elasticsearch_t elasticsearch_base_t:dir { getattr open read };
+allow elasticsearch_t elasticsearch_base_t:file { getattr open read };
+
+########################################
+#
+# ElasticSearch Additional rules
+#
+
+### Allow ElasticSearch to use JAVA
+allow elasticsearch_t java_exec_t:file { execute execute_no_trans getattr open read };
+
+# Allow ElasticSearch to perform basic commands (eg. which and grep)
+allow elasticsearch_t bin_t:dir { getattr read };
+allow elasticsearch_t bin_t:file { execute execute_no_trans getattr open read };
+allow elasticsearch_t bin_t:lnk_file read;
+
+# Allow usage of hostname
+allow elasticsearch_t hostname_exec_t:file { execute execute_no_trans getattr open read };
+
+# Allow usage of ldconfig
+allow elasticsearch_t ldconfig_exec_t:file { execute execute_no_trans getattr open read };
+
+### Allow access to the information within /proc and /sys (https://en.wikipedia.org/wiki/Sysfs)
+allow elasticsearch_t proc_net_t:file { getattr open read };
+allow elasticsearch_t proc_t:file { getattr open read };
+allow elasticsearch_t sysctl_fs_t:dir { getattr search };
+allow elasticsearch_t sysctl_net_t:dir { getattr search };
+allow elasticsearch_t sysctl_net_t:file { getattr open read };
+allow elasticsearch_t sysctl_vm_overcommit_t:file { open read };
+allow elasticsearch_t sysctl_vm_t:dir { getattr search };
+allow elasticsearch_t sysctl_vm_t:file { getattr open read };
+allow elasticsearch_t sysfs_t:dir read;
+allow elasticsearch_t sysfs_t:file { getattr open read };
+allow elasticsearch_t sysfs_t:lnk_file { getattr read };
+
+# Allow ElasticSearch to use /tmp
+allow elasticsearch_t tmp_t:dir { create add_name read remove_name write };
+allow elasticsearch_t tmp_t:file { create execute getattr open read unlink write };
+
+# Allow ElasticSearch to access Locale
+allow elasticsearch_t locale_t:file { getattr open read };
+allow elasticsearch_t locale_t:lnk_file read;
+
+# Allow ElasticSearch to access CPU info
+allow elasticsearch_t cgroup_t:file { getattr open read };
+allow elasticsearch_t cgroup_t:lnk_file { getattr read };
+
+# Allow ElasticSearch to use /dev/random and /dev/urandom
+allow elasticsearch_t random_device_t:chr_file { getattr open read };
+allow elasticsearch_t urandom_device_t:chr_file { getattr open read };
+
+# Allow ElasticSearch to use bash
+allow elasticsearch_t shell_exec_t:file { execute open read };
+
+#Allow ElasticSearch to access resolv.conf (JAVA)
+allow elasticsearch_t net_conf_t:file { getattr open read };
+
+#Allow ElasticSearch to search root (/)
+allow elasticsearch_t home_root_t:dir search;
+
+### Allow to open port 9200 and 9300
+allow elasticsearch_t elasticsearch_port_t:tcp_socket { listen accept name_bind node_bind name_connect };
+allow elasticsearch_t node_t:tcp_socket node_bind;
+
+# Init script handling
+init_use_fds(elasticsearch_t)
+init_use_script_ptys(elasticsearch_t)
+domain_use_interactive_fds(elasticsearch_t)
+
+#All required getattr permissions
+allow elasticsearch_t autofs_t:dir getattr;
+allow elasticsearch_t debugfs_t:dir getattr;
+allow elasticsearch_t home_root_t:dir getattr;
+allow elasticsearch_t hugetlbfs_t:dir getattr;
+allow elasticsearch_t pstore_t:dir getattr;
+allow elasticsearch_t tmpfs_t:dir getattr;
+allow elasticsearch_t var_lock_t:dir getattr;
+allow elasticsearch_t fs_t:filesystem getattr;
+allow elasticsearch_t tmpfs_t:dir getattr;
+allow elasticsearch_t binfmt_misc_fs_t:dir getattr;
+allow elasticsearch_t fixed_disk_device_t:blk_file getattr;
+allow elasticsearch_t sysctl_t:dir getattr;
+allow elasticsearch_t user_runtime_root_t:dir getattr;
+allow elasticsearch_t user_runtime_t:dir getattr;
+
+########################################
+#
+# Other domains of the default policy that require access to the ElasticSearch domains
+#
+
+#============= init_t ==============
+allow init_t elasticsearch_bin_t:dir search;
+allow init_t elasticsearch_base_t:dir search;
+allow init_t elasticsearch_bin_t:file { execute execute_no_trans getattr ioctl open read };
+
+#============= setfiles_t ==============
+allow setfiles_t elasticsearch_base_t:dir { getattr open read relabelfrom };
+allow setfiles_t elasticsearch_base_t:file { getattr relabelfrom };
+allow setfiles_t elasticsearch_bin_t:dir { getattr open read relabelto };
+allow setfiles_t elasticsearch_bin_t:file relabelto;
+allow setfiles_t elasticsearch_etc_t:dir { getattr open read };
+allow setfiles_t elasticsearch_etc_t:file getattr;
+
+#============= systemd_logind_t ==============
+allow systemd_logind_t user_runtime_t:sock_file unlink;
+
+########################################
+### Uninvestigated audit2allow rules ###
+########################################

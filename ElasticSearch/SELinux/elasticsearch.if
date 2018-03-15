@@ -1,0 +1,32 @@
+###################################################################################################################################
+### Title: ElasticSearch SELinux policy module                                                                                  ###
+### File Type: Interfaces                                                                                                       ###
+### Author: Jeffrey Everling                                                                                                    ###
+### Description: This is a SELinux policy module for Elasticsearcg (https://elastic.co). It is still under development and      ###
+### there are no guarantees that this is a perfect SELinux policy module. Suggestions are welcome!                              ###
+###################################################################################################################################
+
+## <summary>policy for elasticsearch</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run thehive.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`elasticsearch_domtrans',`
+	gen_require(`
+		type elasticsearch_t, elasticsearch_exec_t;
+	')
+
+	domain_auto_transition_pattern($1,elasticsearch_exec_t,elasticsearch_t)
+
+	allow $1 elasticsearch_t:fd use;
+	allow elasticsearch_t $1:fd use;
+	allow elasticsearch_t $1:fifo_file rw_file_perms;
+	allow elasticsearch_t $1:process sigchld;
+')

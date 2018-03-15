@@ -1,0 +1,21 @@
+###################################################################################################################################
+### Title: ElasticSearch SELinux policy module                                                                                  ###
+### File Type: File Context                                                                                                     ###
+### Author: Jeffrey Everling                                                                                                    ###
+### Description: This is a SELinux policy module for Elasticsearcg (https://elastic.co). It is still under development and      ###
+### there are no guarantees that this is a perfect SELinux policy module. Suggestions are welcome!                              ###
+###################################################################################################################################
+
+# elasticsearch executable will have:
+# label: system_u:object_r:elasticsearch_exec_t
+# MLS sensitivity: s0
+# MCS categories: <none>
+
+/usr/share/elasticsearch(/.*)?              gen_context(system_u:object_r:elasticsearch_base_t,s0)
+/usr/share/elasticsearch/bin(/.*)?          gen_context(system_u:object_r:elasticsearch_bin_t,s0)
+/usr/share/elasticsearch/bin/elasticsearch	gen_context(system_u:object_r:elasticsearch_exec_t,s0)
+/var/run/elasticsearch/elasticsearch.pid	gen_context(system_u:object_r:elasticsearch_var_run_t,s0)
+/var/log/elasticsearch(/.*)?			    gen_context(system_u:object_r:elasticsearch_var_log_t,s0)
+/var/lib/elasticsearch(/.*)?                gen_context(system_u:object_r:elasticsearch_var_lib_t,s0)
+/usr/share/elasticsearch/lib(/.*)?			gen_context(system_u:object_r:elasticsearch_var_lib_t,s0)
+/etc/elasticsearch(/.*)?                    gen_context(system_u:object_r:elasticsearch_etc_t,s0)
