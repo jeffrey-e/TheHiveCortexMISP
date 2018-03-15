@@ -50,12 +50,12 @@ require {
         type node_t;
         type elasticsearch_t;
         type elasticsearch_port_t;
-        #type cortex_port_t;
-        class sock_file unlink;
-        class chr_file { getattr open read };
-        class lnk_file read;
-        class file { create execute execute_no_trans getattr open read rename unlink write };
-        class udp_socket { create ioctl };
+        type cortex_port_t;
+        #class sock_file unlink;
+        #class chr_file { getattr open read };
+        #class lnk_file read;
+        #class file { create execute execute_no_trans getattr open read rename unlink write };
+        #class udp_socket { create ioctl };
 }
 
 
@@ -65,22 +65,28 @@ require {
 #
 
 type thehive_t;
+domain_type(thehive_t)
+
+type thehive_base_t;
+files_type(thehive_base_t)
 
 #Define a port type
 type thehive_port_t;
 corenet_port(thehive_port_t);
 
 type thehive_exec_t;
-domain_type(thehive_t)
 init_daemon_domain(thehive_t, thehive_exec_t)
 
 ### pid files
 type thehive_var_run_t;
 files_pid_file(thehive_var_run_t)
 
+### /etc files
+type thehive_etc_t;
+files_type(thehive_etc_t)
+
 ### log files
 type thehive_var_log_t;
-
 # Enable generic log permissions to The Hive logging
 logging_log_file(thehive_var_log_t)
 
@@ -106,22 +112,33 @@ allow thehive_t self:fifo_file { read write };
 allow thehive_t self:unix_stream_socket create_stream_socket_perms;
 allow thehive_t self:process execmem;
 
+### The Hive /etc files
+allow thehive_t thehive_etc_t:dir search;
+allow thehive_t thehive_etc_t:file { getattr open read };
+allow thehive_t thehive_etc_t:lnk_file read;
+
 ### pid file
 allow thehive_t thehive_var_run_t:file manage_file_perms;
 allow thehive_t thehive_var_run_t:sock_file manage_file_perms;
 allow thehive_t thehive_var_run_t:dir rw_dir_perms;
 files_pid_filetrans(thehive_t,thehive_var_run_t, { file sock_file })
 
+# Base files of Cortex
+allow thehive_t thehive_base_t:dir { getattr open read search };
+allow thehive_t thehive_base_t:file { getattr open read };
+allow thehive_t thehive_base_t:lnk_file read;
+
 ### log files
+allow thehive_t thehive_var_log_t:lnk_file read;
 allow thehive_t thehive_var_log_t:file create_file_perms;
 allow thehive_t thehive_var_log_t:sock_file create_file_perms;
 allow thehive_t thehive_var_log_t:dir { rw_dir_perms setattr };
 logging_log_filetrans(thehive_t,thehive_var_log_t,{ sock_file file dir })
 
 # var/lib files for thehive
-allow thehive_t thehive_var_lib_t:file create_file_perms;
-allow thehive_t thehive_var_lib_t:sock_file create_file_perms;
-allow thehive_t thehive_var_lib_t:dir create_dir_perms;
+allow thehive_t thehive_var_lib_t:file { create_file_perms read };
+allow thehive_t thehive_var_lib_t:sock_file { create_file_perms read };
+allow thehive_t thehive_var_lib_t:dir { create_dir_perms search};
 files_var_lib_filetrans(thehive_t,thehive_var_lib_t, { file dir sock_file })
 
 ## Networking basics (adjust to your needs!)
@@ -172,7 +189,7 @@ allow thehive_t elasticsearch_port_t:tcp_socket name_connect;
 #Need to figure out if I can translate this to ES port types
 
 ### Allow TheHive to connect to Cortex
-#allow thehive_t cortex_port_t:tcp_socket name_connect;
+allow thehive_t cortex_port_t:tcp_socket name_connect;
 
 ### Allow access to the network information within /proc
 allow thehive_t proc_net_t:file { getattr open read };
@@ -225,6 +242,4 @@ allow thehive_t self:udp_socket { create ioctl };
 ### Uninvestigated audit2allow rules ###
 ########################################
 
-allow thehive_t usr_t:dir read;
-allow thehive_t usr_t:lnk_file read;
 allow thehive_t var_log_t:file open;

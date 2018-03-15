@@ -1,0 +1,176 @@
+###################################################################################################################################
+### Title: Cortex SELinux policy module                                                                                         ###
+### File Type: Type Enforcement                                                                                                 ###
+### Author: Jeffrey Everling                                                                                                    ###
+### Description: This is a SELinux policy module for Cortex (https://thehive-project.org/). It is still under development and   ###
+### there are no guarantees that this is a perfect SELinux policy module. Suggestions are welcome!                              ###
+###################################################################################################################################
+
+policy_module(cortex,1.0.0)
+
+########################################
+#
+# Requirements
+#
+require {
+	type sysctl_net_t;
+	type tmp_t;
+	type locale_t;
+	type sysfs_t;
+	type node_t;
+	type proc_net_t;
+	type cortex_port_t;
+	type net_conf_t;
+	type var_log_t;
+	type bin_t;
+	type java_exec_t;
+	type http_port_t;
+	type sysctl_vm_t;
+	type urandom_device_t;
+	type ldconfig_exec_t;
+	type random_device_t;
+	type sysctl_vm_overcommit_t;
+	type shell_exec_t;
+        type etc_t;
+	#class dir { add_name create getattr open read remove_name rmdir search write };
+	#class udp_socket { connect create getattr ioctl read write };
+	#class file { create execute execute_no_trans getattr ioctl open read unlink write };
+	#class chr_file { getattr open read };
+	#class fifo_file { getattr ioctl read write };
+	#class process { execmem getsched };
+	#class lnk_file { getattr read };
+	#class tcp_socket { accept bind connect create getattr getopt listen name_bind name_connect node_bind read setopt write };
+}
+
+
+########################################
+#
+# Declarations
+#
+
+type cortex_t;
+domain_type(cortex_t)
+
+type cortex_base_t;
+files_type(cortex_base_t)
+
+type cortex_analyzers_t;
+files_type(cortex_analyzers_t)
+
+#Define a port type
+type cortex_port_t;
+corenet_port(cortex_port_t)
+
+type cortex_exec_t;
+init_daemon_domain(cortex_t, cortex_exec_t)
+
+### pid files
+type cortex_var_run_t;
+files_pid_file(cortex_var_run_t)
+
+### /etc files
+type cortex_etc_t;
+files_type(cortex_etc_t)
+
+### log files
+type cortex_var_log_t;
+# Enable generic log permissions to Cortex logging
+logging_log_file(cortex_var_log_t)
+
+### var/lib files
+type cortex_var_lib_t;
+files_type(cortex_var_lib_t)
+
+########################################
+#
+# Cortex local policy
+#
+
+### internal communication is often done using fifo and unix sockets.
+allow cortex_t self:fifo_file { getattr ioctl read write };
+allow cortex_t self:process { execmem getsched };
+allow cortex_t self:tcp_socket { accept bind connect create getattr getopt listen read setopt write };
+allow cortex_t self:udp_socket { connect create getattr ioctl read write };
+
+### Cortex /etc files
+allow cortex_t cortex_etc_t:dir search;
+allow cortex_t cortex_etc_t:file { getattr open read };
+allow cortex_t cortex_etc_t:lnk_file read;
+
+### log files
+allow cortex_t cortex_var_log_t:file create_file_perms;
+allow cortex_t cortex_var_log_t:sock_file create_file_perms;
+allow cortex_t cortex_var_log_t:dir { rw_dir_perms setattr };
+logging_log_filetrans(cortex_t,cortex_var_log_t,{ sock_file file dir })
+
+# var/lib files for Cortex
+allow cortex_t cortex_var_lib_t:file { create_file_perms read };
+allow cortex_t cortex_var_lib_t:sock_file create_file_perms;
+allow cortex_t cortex_var_lib_t:dir { create_dir_perms search };
+files_var_lib_filetrans(cortex_t,cortex_var_lib_t, { file dir sock_file })
+
+# Base files of Cortex
+allow cortex_t cortex_base_t:dir { getattr open read };
+allow cortex_t cortex_base_t:file { getattr open read };
+
+# Cortex Analyzers
+allow cortex_t cortex_analyzers_t:dir read;
+allow cortex_t cortex_analyzers_t:file { execute execute_no_trans getattr ioctl open read };
+
+########################################
+#
+# Cortex Additional rules
+#
+
+### Allow Cortex to use JAVA
+allow cortex_t java_exec_t:file { execute execute_no_trans getattr open read };
+
+# Allow Cortex to run basic commands
+allow cortex_t bin_t:dir { getattr search };
+allow cortex_t bin_t:file { execute execute_no_trans getattr open read };
+allow cortex_t bin_t:lnk_file { getattr read };
+
+# Allow Cortex to read /etc (JAVA config files)
+allow cortex_t etc_t:file { getattr open read };
+allow cortex_t etc_t:lnk_file read;
+
+# Allow Cortex to use bash
+allow cortex_t shell_exec_t:file { execute execute_no_trans getattr open read };
+
+# Allow usage of ldconfig
+allow cortex_t ldconfig_exec_t:file { execute execute_no_trans open read };
+
+# Allow Cortex to access Locale
+allow cortex_t locale_t:dir search;
+allow cortex_t locale_t:file { getattr open read };
+allow cortex_t locale_t:lnk_file read;
+
+# Allow Cortex to access resolv.conf (JAVA)
+allow cortex_t net_conf_t:file { getattr open read };
+
+### Allow to open port 9000 (This is a reserved port in the default SElinux policy, so the port type is not custom to The Hive)
+allow cortex_t cortex_port_t:tcp_socket name_bind;
+allow cortex_t node_t:tcp_socket node_bind;
+
+### Allow Cortex to connect to web ports on the internet
+allow cortex_t http_port_t:tcp_socket name_connect;
+
+# Allow thehive to work in /tmp
+allow cortex_t tmp_t:dir { add_name create read remove_name rmdir write };
+allow cortex_t tmp_t:file { create execute getattr open read unlink write };
+
+### Allow access to the information within /proc and /sys (https://en.wikipedia.org/wiki/Sysfs)
+allow cortex_t proc_net_t:file { getattr open read };
+allow cortex_t sysctl_net_t:dir search;
+allow cortex_t sysctl_net_t:file { getattr open read };
+allow cortex_t sysctl_vm_overcommit_t:file { open read };
+allow cortex_t sysctl_vm_t:dir search;
+allow cortex_t sysfs_t:dir read;
+
+# Allow The Hive to use /dev/random and /dev/urandom
+allow cortex_t random_device_t:chr_file { getattr open read };
+allow cortex_t urandom_device_t:chr_file { getattr open read };
+
+########################################
+### Uninvestigated audit2allow rules ###
+########################################

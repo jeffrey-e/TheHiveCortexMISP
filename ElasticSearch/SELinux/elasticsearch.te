@@ -151,7 +151,7 @@ allow elasticsearch_t elasticsearch_base_t:file { getattr open read };
 allow elasticsearch_t java_exec_t:file { execute execute_no_trans getattr open read };
 
 # Allow ElasticSearch to perform basic commands (eg. which and grep)
-allow elasticsearch_t bin_t:dir { getattr read };
+allow elasticsearch_t bin_t:dir { getattr read search };
 allow elasticsearch_t bin_t:file { execute execute_no_trans getattr open read };
 allow elasticsearch_t bin_t:lnk_file read;
 

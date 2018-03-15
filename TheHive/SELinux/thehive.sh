@@ -13,3 +13,5 @@ sudo load_policy
 
 #Relabel the files of The Hive
 sudo restorecon -R /opt/thehive
+sudo restorecon -R /etc/thehive
+sudo restorecon -R /var/log/thehive

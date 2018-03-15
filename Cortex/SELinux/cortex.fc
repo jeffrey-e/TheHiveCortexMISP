@@ -7,14 +7,15 @@
 ###################################################################################################################################
 
 # thehive executable will have:
-# label: system_u:object_r:thehive_exec_t
+# label: system_u:object_r:cortex_exec_t
 # MLS sensitivity: s0
 # MCS categories: <none>
 
-/opt/thehive(/.*)?	        gen_context(system_u:object_r:thehive_base_t,s0)
-/opt/thehive/bin/thehive	gen_context(system_u:object_r:thehive_exec_t,s0)
-/opt/thehive/RUNNING_PID	gen_context(system_u:object_r:thehive_var_run_t,s0)
-/etc/thehive(/.*)?			gen_context(system_u:object_r:thehive_etc_t,s0)
-/opt/thehive/logs(/.*)?		gen_context(system_u:object_r:thehive_var_log_t,s0)
-/var/log/thehive(/.*)?		gen_context(system_u:object_r:thehive_var_log_t,s0)
-/opt/thehive/lib(/.*)?		gen_context(system_u:object_r:thehive_var_lib_t,s0)
+/opt/cortex(/.*)?	            gen_context(system_u:object_r:cortex_base_t,s0)
+/opt/cortex/bin/cortex	        gen_context(system_u:object_r:cortex_exec_t,s0)
+/opt/cortex/RUNNING_PID	        gen_context(system_u:object_r:cortex_var_run_t,s0)
+/etc/cortex(/.*)?			    gen_context(system_u:object_r:cortex_etc_t,s0)
+/opt/cortex/logs(/.*)?			gen_context(system_u:object_r:cortex_var_log_t,s0)
+/var/log/cortex(/.*)?		gen_context(system_u:object_r:cortex_var_log_t,s0)
+/opt/cortex/lib(/.*)?			gen_context(system_u:object_r:cortex_var_lib_t,s0)
+/opt/Cortex-Analyzers(/.*)?		gen_context(system_u:object_r:cortex_analyzers_t,s0)
