@@ -1,0 +1,28 @@
+###################################################################################################################################
+### Title: Redis Debian Additional SELinux policy module                                                                        ###
+### File Type: Type Enforcement                                                                                                 ###
+### Author: Jeffrey Everling                                                                                                    ###
+### Description: This is an additional SELinux policy module for Redis as the default policy is not recognized properly.        ###
+### The wrong file contexts are present and there is not domain transition interface                                            ###
+###################################################################################################################################
+
+policy_module(redis-debian,1.0.0)
+
+########################################
+#
+# Requirements
+#
+#require {
+#    type redis_t;
+#    type redis_exec_t;
+#}
+
+########################################
+#
+# Declarations
+#
+
+########################################
+#
+# Redis Debian local policy
+#

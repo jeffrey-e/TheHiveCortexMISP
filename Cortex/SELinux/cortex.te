@@ -170,7 +170,3 @@ allow cortex_t sysfs_t:dir read;
 # Allow The Hive to use /dev/random and /dev/urandom
 allow cortex_t random_device_t:chr_file { getattr open read };
 allow cortex_t urandom_device_t:chr_file { getattr open read };
-
-########################################
-### Uninvestigated audit2allow rules ###
-########################################

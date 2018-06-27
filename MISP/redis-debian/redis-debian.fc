@@ -1,0 +1,15 @@
+###################################################################################################################################
+### Title: Redis Debian Additional SELinux policy module                                                                        ###
+### File Type: File Context                                                                                                     ###
+### Author: Jeffrey Everling                                                                                                    ###
+### Description: This is an additional SELinux policy module for Redis as the default policy is not recognized properly.        ###
+### The wrong file contexts are present and there is not domain transition interface                                            ###
+###################################################################################################################################
+
+# redis executable will have:
+# label: system_u:object_r:redis_exec_t
+# MLS sensitivity: s0
+# MCS categories: <none>
+
+/usr/bin/redis-server	        gen_context(system_u:object_r:redis_exec_t,s0)
+/etc/rc\.d/init\.d/redis-server        gen_context(system_u:object_r:redis_initrc_exec_t,s0)
