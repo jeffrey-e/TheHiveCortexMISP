@@ -1,0 +1,19 @@
+lse:
+    # Api function to be used
+    function: get_log_sources_in_error
+    critical_log_sources:
+        - <Group ID of critical log sources>
+    description: Log Sources in ERROR
+    severity: <alert severity>
+    case_template: <Case template name>
+    uri: /api/config/event_sources/log_source_management/log_sources
+    params: fields=id,name,description,group_ids,last_event_time,status(status),auto_discovered&filter=status(status) = ERROR or status(status) = NA or status(status) = WARN
+<param to call from commandline (Ex. rpt)>:
+    # Api function to be used
+    function: get_event_report
+    description: <Description>
+    severity: <alert severity>
+    case_template: <Case template name>
+    uri: /api/ariel/searches?query_expression=
+    # Make use of URL encoded query expressions
+    query: <url encoded query>

@@ -117,7 +117,7 @@ class TheHiveApi:
             'title', 'description', 'severity', 'startDate', 'owner', 'flag', 'tlp', 'tags', 'resolutionStatus',
             'impactStatus', 'summary', 'endDate', 'metrics', 'customFields'
         ]
-        data = {k: v for k, v in case.__dict__.items() if (len(fields) > 0 and k in fields) or (len(fields) == 0 and k in update_keys)}
+        data = {k: v for k, v in list(case.__dict__.items()) if (len(fields) > 0 and k in fields) or (len(fields) == 0 and k in update_keys)}
         try:
             return requests.patch(req, headers={'Content-Type': 'application/json'}, json=data, proxies=self.proxies, auth=self.auth, verify=self.cert)
         except requests.exceptions.RequestException:
@@ -141,6 +141,27 @@ class TheHiveApi:
             return requests.post(req, headers={'Content-Type': 'application/json'}, data=data, proxies=self.proxies, auth=self.auth, verify=self.cert)
         except requests.exceptions.RequestException as e:
             raise CaseTaskException("Case task create error: {}".format(e))
+
+    def update_case_task(self, task):
+        """
+        :Updates TheHive Task
+        :param case: The task to update. The task's `id` determines which Task to update.
+        :return:
+        """
+        req = self.url + "/api/case/task/{}".format(task.id)
+
+        # Choose which attributes to send
+        update_keys = [
+            'title', 'description', 'status', 'order', 'user', 'owner', 'flag', 'endDate'
+        ]
+
+        data = {k: v for k, v in list(task.__dict__.items()) if k in update_keys}
+
+        try:
+            return requests.patch(req, headers={'Content-Type': 'application/json'}, json=data,
+                                  proxies=self.proxies, auth=self.auth, verify=self.cert)
+        except requests.exceptions.RequestException as e:
+            raise CaseTaskException("Case task update error: {}".format(e))
 
     def create_task_log(self, task_id, case_task_log):
 
@@ -294,6 +315,13 @@ class TheHiveApi:
         except requests.exceptions.RequestException as e:
             raise CaseException("Linked cases fetch error: {}".format(e))
 
+    def find_case_templates(self, **attributes):
+        """
+            :return: list of case templates
+            :rtype: json
+        """
+        return self.__find_rows("/api/case/template/_search", **attributes)
+
     def get_case_template(self, name):
 
         """
@@ -335,20 +363,46 @@ class TheHiveApi:
             raise CaseTaskException("Case task logs search error: {}".format(e))
 
     def create_alert(self, alert):
-
         """
         :param alert: TheHive alert
         :type alert: Alert defined in models.py
         :return: TheHive alert
         :rtype: json
         """
-
         req = self.url + "/api/alert"
         data = alert.jsonify()
+        
+        
         try:
             return requests.post(req, headers={'Content-Type': 'application/json'}, data=data, proxies=self.proxies, auth=self.auth, verify=self.cert)
         except requests.exceptions.RequestException as e:
             raise AlertException("Alert create error: {}".format(e))
+
+    def mark_alert_as_read(self, alert_id):
+        """
+        Mark an alert as read.
+        :param alert_id: The ID of the alert to mark as read.
+        :return:
+        """
+        req = self.url + "/api/alert/{}/markAsRead".format(alert_id)
+
+        try:
+            return requests.post(req, headers={'Content-Type': 'application/json'}, proxies=self.proxies, auth=self.auth, verify=self.cert)
+        except requests.exceptions.RequestException:
+            raise AlertException("Mark alert as read error: {}".format(e))
+
+    def mark_alert_as_unread(self, alert_id):
+        """
+        Mark an alert as unread.
+        :param alert_id: The ID of the alert to mark as unread.
+        :return:
+        """
+        req = self.url + "/api/alert/{}/markAsUnread".format(alert_id)
+
+        try:
+            return requests.post(req, headers={'Content-Type': 'application/json'}, proxies=self.proxies, auth=self.auth, verify=self.cert)
+        except requests.exceptions.RequestException:
+            raise AlertException("Mark alert as unread error: {}".format(e))
 
     def update_alert(self, alert_id, alert, fields=[]):
         """
@@ -363,7 +417,7 @@ class TheHiveApi:
         # update only the alert attributes that are not read-only
         update_keys = ['tlp', 'severity', 'tags', 'caseTemplate', 'title', 'description']
 
-        data = {k: v for k, v in alert.__dict__.items() if
+        data = {k: v for k, v in list(alert.__dict__.items()) if
                 (len(fields) > 0 and k in fields) or (len(fields) == 0 and k in update_keys)}
 
         if hasattr(alert, 'artifacts'):
@@ -394,6 +448,27 @@ class TheHiveApi:
 
         return self.__find_rows("/api/alert/_search", **attributes)
 
+    def promote_alert_to_case(self, alert_id):
+        """
+            This uses the TheHiveAPI to promote an alert to a case
+
+            :param alert_id: Alert identifier
+            :return: TheHive Case
+            :rtype: json
+        """
+
+        req = self.url + "/api/alert/{}/createCase".format(alert_id)
+
+        try:
+            return requests.post(req, headers={'Content-Type': 'application/json'},
+                                 proxies=self.proxies, auth=self.auth,
+                                 verify=self.cert, data=json.dumps({}))
+
+        except requests.exceptions.RequestException as the_exception:
+            raise AlertException("Couldn't promote alert to case: {}".format(the_exception))
+
+        return None
+
     def run_analyzer(self, cortex_id, artifact_id, analyzer_id):
 
         """
@@ -414,6 +489,13 @@ class TheHiveApi:
         except requests.exceptions.RequestException as e:
             raise TheHiveException("Analyzer run error: {}".format(e))
 
+    def find_tasks(self, **attributes):
+        """
+            :return: list of Tasks
+            :rtype: json
+        """
+
+        return self.__find_rows("/api/case/task/_search", **attributes)
 
 # - addObservable(file)
 # - addObservable(data)

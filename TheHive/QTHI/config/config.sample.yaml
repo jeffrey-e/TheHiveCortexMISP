@@ -1,0 +1,39 @@
+QRadar:
+    proxies:
+        http: 
+        https: 
+    url: https://<ip/hostname>:<port>
+    key: <key>
+    verify: <True/False>
+    enabled_datatypes:
+        - ip
+        - domain
+        - fqdn
+        - url
+        - hash
+    search_limit : <amount of days to search back for>
+    search_timeout : <search timeout in seconds>
+    polling_interval : <search status polling interval in seconds>
+    url_root_domain_field: <field>
+    url_fqdn_field:<field>
+    url_field: <field>
+    mail_recipient_field: <field>
+    mail_sender_field: <field>
+    mail_send_qid: <qid>
+    mail_receive_qid: <qid>
+    hash_md5: <field>
+    hash_sha1: <field>
+    hash_sha256: <field>
+TheHive:
+    proxies:
+      http: 
+      https: 
+    url: https://<ip/hostname>
+    key: <key>
+    verify: <path/to/cert>
+Synapse:
+    proxies:
+        http: 
+        https: 
+    url: http://<url>:<port>
+    verify: <True/False>

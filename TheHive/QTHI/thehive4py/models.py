@@ -18,7 +18,7 @@ class CustomJsonEncoder(json.JSONEncoder):
         if isinstance(o, JSONSerializable):
             return o.__dict__
         else:
-            return json.JSONEncoder.encode(self, o)
+            return json.JSONEncoder.default(self, o)
 
 
 class JSONSerializable(object):
@@ -280,6 +280,7 @@ class Alert(JSONSerializable):
         self.source = self.attr(attributes, 'source', None, 'Missing alert source')
         self.sourceRef = self.attr(attributes, 'sourceRef', None, 'Missing alert reference')
         self.description = self.attr(attributes, 'description', None, 'Missing alert description')
+        self.customFields = self.attr(attributes, 'customFields', {})
 
         artifacts = attributes.get('artifacts', [])
         self.artifacts = []
